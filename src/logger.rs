@@ -80,30 +80,30 @@ impl From<serde_json::Error> for GraylogError {
     }
 }
 
+pub fn init() -> Result<(), GraylogError> {
+    use log;
+    use std::process::Command;
+    let sock = try!(UdpSocket::bind("0.0.0.0:0"));
+
+    try!(log::set_logger(|max_log_level| {
+        max_log_level.set(LogLevelFilter::Debug);
+        let hostname = Command::new("hostname")
+            .arg("-f")
+            .output()
+            .map(|out| String::from_utf8_lossy(&out.stdout).into_owned())
+            .unwrap_or("unknown".to_string());
+
+        Box::new(GraylogLogger {
+            level: LogLevel::Debug,
+            server: "192.168.99.100:5555",
+            sock: sock,
+            hostname: hostname,
+        })
+    }));
+    Ok(())
+}
+
 impl<'a> GraylogLogger<'a> {
-    pub fn init() -> Result<(), GraylogError> {
-        use log;
-        use std::process::Command;
-        let sock = try!(UdpSocket::bind("0.0.0.0:0"));
-
-        try!(log::set_logger(|max_log_level| {
-            max_log_level.set(LogLevelFilter::Debug);
-            let hostname = Command::new("hostname")
-                .arg("-f")
-                .output()
-                .map(|out| String::from_utf8_lossy(&out.stdout).into_owned())
-                .unwrap_or("unknown".to_string());
-
-            Box::new(GraylogLogger {
-                level: LogLevel::Debug,
-                server: "192.168.99.100:5555",
-                sock: sock,
-                hostname: hostname,
-            })
-        }));
-        Ok(())
-    }
-
     fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
         let mut e = GzEncoder::new(Vec::new(), Compression::Default);
         let utc: DateTime<UTC> = UTC::now();
