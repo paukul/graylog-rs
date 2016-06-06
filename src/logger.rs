@@ -4,13 +4,13 @@ use std::net::{UdpSocket, ToSocketAddrs};
 use std::fmt;
 
 use log;
-use log::{Log, LogRecord, LogLevel, LogMetadata, LogLevelFilter};
+use log::{Log, LogRecord, LogLevel, LogMetadata};
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use chrono::{DateTime, UTC};
 use serde_json;
 
-pub struct GraylogLogger<A: ToSocketAddrs> {
+struct GraylogLogger<A: ToSocketAddrs> {
     server: A,
     sock: UdpSocket,
     level: LogLevel,
@@ -80,7 +80,7 @@ impl From<serde_json::Error> for GraylogError {
     }
 }
 
-pub fn init<A: ToSocketAddrs + 'static>(addr: A) -> Result<(), GraylogError>
+pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), GraylogError>
     where A: std::marker::Send + std::marker::Sync
 {
     use log;
@@ -88,7 +88,7 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A) -> Result<(), GraylogError>
     let sock = try!(UdpSocket::bind("0.0.0.0:0"));
 
     try!(log::set_logger(|max_log_level| {
-        max_log_level.set(LogLevelFilter::Debug);
+        max_log_level.set(level.to_log_level_filter());
         let hostname = Command::new("hostname")
             .arg("-f")
             .output()
@@ -96,7 +96,7 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A) -> Result<(), GraylogError>
             .unwrap_or("unknown".to_string());
 
         Box::new(GraylogLogger {
-            level: LogLevel::Debug,
+            level: level,
             server: addr,
             sock: sock,
             hostname: hostname,

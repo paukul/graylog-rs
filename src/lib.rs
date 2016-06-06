@@ -8,7 +8,7 @@
 //! extern crate graylog;
 //!
 //! fn main() {
-//!   graylog::logger::init("192.168.99.100:5555");
+//!   graylog::logger::init("192.168.99.100:5555", log::LogLevel::Debug);
 //!   info!("The logger macros now use the graylog logging backend");
 //! }
 //! ```
@@ -17,6 +17,7 @@
 // Needed to derive `Serialize` on ServiceProperties
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
+//#![warn(missing_docs)]
 extern crate serde_json;
 #[macro_use]
 extern crate log;
