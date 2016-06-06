@@ -1,0 +1,13 @@
+[package]
+name = "graylog"
+version = "0.1.0"
+authors = ["Pascal Friederich <paukul@gmail.com>"]
+
+[dependencies]
+clippy = "*"
+log = "0.3"
+flate2 = "0.2"
+serde = "0.7.0"
+serde_json = "0.7.0"
+serde_macros = "0.7.2"
+chrono = "0.2"
