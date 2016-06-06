@@ -1,6 +1,6 @@
 use std;
 use std::io::prelude::*;
-use std::net::UdpSocket;
+use std::net::{UdpSocket, ToSocketAddrs};
 use std::fmt;
 
 use log;
@@ -10,8 +10,8 @@ use flate2::write::GzEncoder;
 use chrono::{DateTime, UTC};
 use serde_json;
 
-pub struct GraylogLogger<'a> {
-    server: &'a str,
+pub struct GraylogLogger<A: ToSocketAddrs> {
+    server: A,
     sock: UdpSocket,
     level: LogLevel,
     hostname: String,
@@ -80,7 +80,9 @@ impl From<serde_json::Error> for GraylogError {
     }
 }
 
-pub fn init() -> Result<(), GraylogError> {
+pub fn init<A: ToSocketAddrs + 'static>(addr: A) -> Result<(), GraylogError>
+    where A: std::marker::Send + std::marker::Sync
+{
     use log;
     use std::process::Command;
     let sock = try!(UdpSocket::bind("0.0.0.0:0"));
@@ -95,7 +97,7 @@ pub fn init() -> Result<(), GraylogError> {
 
         Box::new(GraylogLogger {
             level: LogLevel::Debug,
-            server: "192.168.99.100:5555",
+            server: addr,
             sock: sock,
             hostname: hostname,
         })
@@ -103,7 +105,7 @@ pub fn init() -> Result<(), GraylogError> {
     Ok(())
 }
 
-impl<'a> GraylogLogger<'a> {
+impl<A: ToSocketAddrs> GraylogLogger<A> {
     fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
         let mut e = GzEncoder::new(Vec::new(), Compression::Default);
         let utc: DateTime<UTC> = UTC::now();
@@ -126,7 +128,7 @@ impl<'a> GraylogLogger<'a> {
     }
 
     fn send(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
-        let s = try!(self.sock.send_to(buffer, self.server).or_else(|e| {
+        let s = try!(self.sock.send_to(buffer, &self.server).or_else(|e| {
             println!("Error writing to Graylog: {}", e);
             Err(e)
         }));
@@ -134,7 +136,9 @@ impl<'a> GraylogLogger<'a> {
     }
 }
 
-impl<'a> Log for GraylogLogger<'a> {
+impl<A: ToSocketAddrs> Log for GraylogLogger<A>
+    where A: std::marker::Send + std::marker::Sync
+{
     fn enabled(&self, metadata: &LogMetadata) -> bool {
         metadata.level() <= self.level
     }
