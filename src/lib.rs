@@ -23,5 +23,6 @@ extern crate serde_json;
 extern crate log;
 extern crate flate2;
 extern crate chrono;
+extern crate byteorder;
 
 pub mod logger;
