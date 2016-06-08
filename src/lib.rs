@@ -17,7 +17,7 @@
 // Needed to derive `Serialize` on ServiceProperties
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
-//#![warn(missing_docs)]
+// #![warn(missing_docs)]
 extern crate serde_json;
 #[macro_use]
 extern crate log;

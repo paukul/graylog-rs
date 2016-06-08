@@ -13,8 +13,8 @@ use chrono::{DateTime, UTC};
 use serde_json;
 use byteorder::{BigEndian, WriteBytesExt};
 
-const MAX_PACKET_SIZE:   usize = 8192;
-const MAGIC_BYTES:       u16   = 0x1E0F;
+const MAX_PACKET_SIZE: usize = 8192;
+const MAGIC_BYTES: u16 = 0x1E0F;
 
 struct GraylogLogger<A: ToSocketAddrs> {
     server: A,
@@ -60,102 +60,102 @@ impl<'a> Chunk<'a> {
 }
 
 struct ChunkHeader {
-	magic_bytes: u16,
-	message_id: u64,
-	seq_number: u8,
-	seq_count: u8,
+    magic_bytes: u16,
+    message_id: u64,
+    seq_number: u8,
+    seq_count: u8,
 }
 
 impl<'a> GelfChunks<'a> {
-	fn new(data: &'a [u8]) -> GelfChunks<'a> {
-		let chunk_size = MAX_PACKET_SIZE - mem::size_of::<ChunkHeader>();
-		let mut chunks = data.chunks(chunk_size).collect::<Vec<&[u8]>>();
-		chunks.reverse();
-		let message_id = 0x0fa15f94832ecb92; // TODO generate a real one
+    fn new(data: &'a [u8]) -> GelfChunks<'a> {
+        let chunk_size = MAX_PACKET_SIZE - mem::size_of::<ChunkHeader>();
+        let mut chunks = data.chunks(chunk_size).collect::<Vec<&[u8]>>();
+        chunks.reverse();
+        let message_id = 0x0fa15f94832ecb92; // TODO generate a real one
 
-		GelfChunks {
-			count: 0,
-			total: data.len() / chunk_size,
-			chunks: chunks,
-			data: data,
-			message_id: message_id,
-		}
-	}
+        GelfChunks {
+            count: 0,
+            total: data.len() / chunk_size,
+            chunks: chunks,
+            data: data,
+            message_id: message_id,
+        }
+    }
 }
 
 impl<'a> Iterator for GelfChunks<'a> {
-	type Item = Chunk<'a>;
+    type Item = Chunk<'a>;
 
-	fn next(&mut self) -> Option<Chunk<'a>> {
-		self.count += 1;
+    fn next(&mut self) -> Option<Chunk<'a>> {
+        self.count += 1;
 
-		self.chunks.pop().map(|data| {
-			let header = ChunkHeader {
-				magic_bytes: MAGIC_BYTES,
-				message_id: self.message_id,
-				seq_number: self.count as u8,
-				seq_count: self.total as u8,
-			};
+        self.chunks.pop().map(|data| {
+            let header = ChunkHeader {
+                magic_bytes: MAGIC_BYTES,
+                message_id: self.message_id,
+                seq_number: self.count as u8,
+                seq_count: self.total as u8,
+            };
 
-			Chunk {
-				header: header,
-				data: data,
-			}
-		})
-	}
+            Chunk {
+                header: header,
+                data: data,
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
 pub enum GraylogError {
-	SetLoggerError(log::SetLoggerError),
-	Io(std::io::Error),
-	JsonError(serde_json::Error),
+    SetLoggerError(log::SetLoggerError),
+    Io(std::io::Error),
+    JsonError(serde_json::Error),
 }
 
 impl fmt::Display for GraylogError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match *self {
-			GraylogError::SetLoggerError(ref err) => err.fmt(f),
-			GraylogError::Io(ref err) => err.fmt(f),
-			GraylogError::JsonError(ref err) => err.fmt(f),
-		}
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            GraylogError::SetLoggerError(ref err) => err.fmt(f),
+            GraylogError::Io(ref err) => err.fmt(f),
+            GraylogError::JsonError(ref err) => err.fmt(f),
+        }
+    }
 }
 
 impl Error for GraylogError {
-	fn description(&self) -> &str {
-		match *self {
-			GraylogError::SetLoggerError(ref err) => err.description(),
-			GraylogError::Io(ref err) => err.description(),
-			GraylogError::JsonError(ref err) => err.description(),
-		}
-	}
+    fn description(&self) -> &str {
+        match *self {
+            GraylogError::SetLoggerError(ref err) => err.description(),
+            GraylogError::Io(ref err) => err.description(),
+            GraylogError::JsonError(ref err) => err.description(),
+        }
+    }
 
-	fn cause(&self) -> Option<&Error> {
-		match *self {
-			GraylogError::SetLoggerError(ref err) => Some(err),
-			GraylogError::Io(ref err) => Some(err),
-			GraylogError::JsonError(ref err) => Some(err),
-		}
-	}
+    fn cause(&self) -> Option<&Error> {
+        match *self {
+            GraylogError::SetLoggerError(ref err) => Some(err),
+            GraylogError::Io(ref err) => Some(err),
+            GraylogError::JsonError(ref err) => Some(err),
+        }
+    }
 }
 
 impl From<log::SetLoggerError> for GraylogError {
-	fn from(err: log::SetLoggerError) -> GraylogError {
-		GraylogError::SetLoggerError(err)
-	}
+    fn from(err: log::SetLoggerError) -> GraylogError {
+        GraylogError::SetLoggerError(err)
+    }
 }
 
 impl From<std::io::Error> for GraylogError {
-	fn from(err: std::io::Error) -> GraylogError {
-		GraylogError::Io(err)
-	}
+    fn from(err: std::io::Error) -> GraylogError {
+        GraylogError::Io(err)
+    }
 }
 
 impl From<serde_json::Error> for GraylogError {
-	fn from(err: serde_json::Error) -> GraylogError {
-		GraylogError::JsonError(err)
-	}
+    fn from(err: serde_json::Error) -> GraylogError {
+        GraylogError::JsonError(err)
+    }
 }
 
 pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), GraylogError>
@@ -184,62 +184,61 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), 
 }
 
 impl<A: ToSocketAddrs> GraylogLogger<A> {
-	fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
-		let mut e = GzEncoder::new(Vec::new(), Compression::Default);
-		let utc: DateTime<UTC> = UTC::now();
+    fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
+        let mut e = GzEncoder::new(Vec::new(), Compression::Default);
+        let utc: DateTime<UTC> = UTC::now();
 
-		let gelf = Gelf {
-			version: "1.1".to_string(),
-			short_message: format!("{}", record.args()),
-			full_message: None,
-			timestamp: Some(utc.timestamp()),
-			level: None,
-			host: self.hostname.clone(),
-		};
+        let gelf = Gelf {
+            version: "1.1".to_string(),
+            short_message: format!("{}", record.args()),
+            full_message: None,
+            timestamp: Some(utc.timestamp()),
+            level: None,
+            host: self.hostname.clone(),
+        };
 
-		let json = try!(serde_json::to_string(&gelf));
-		// println!("gelf json:\n {}", json);
-		try!(e.write(json.as_bytes()));
+        let json = try!(serde_json::to_string(&gelf));
+        // println!("gelf json:\n {}", json);
+        try!(e.write(json.as_bytes()));
 
-		let compressed_bytes = try!(e.finish());
-		if compressed_bytes.len() > MAX_PACKET_SIZE {
-			self.send_chunked_gelf(&compressed_bytes)
-		} else {
-			self.send(&compressed_bytes)
-		}
-	}
+        let compressed_bytes = try!(e.finish());
+        if compressed_bytes.len() > MAX_PACKET_SIZE {
+            self.send_chunked_gelf(&compressed_bytes)
+        } else {
+            self.send(&compressed_bytes)
+        }
+    }
 
-	fn send_chunked_gelf(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
+    fn send_chunked_gelf(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
         let chunks = GelfChunks::new(buffer);
-		for chunk in chunks {
+        for chunk in chunks {
             let data = try!(chunk.to_binary());
-			try!(self.send(&data));
-		}
-		Ok(1)
-	}
+            try!(self.send(&data));
+        }
+        Ok(1)
+    }
 
-	fn send(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
-		let s = try!(self.sock.send_to(buffer, &self.server).or_else(|e| {
-			println!("Error writing to Graylog: {}", e);
-			Err(e)
-		}));
-		Ok(s)
-	}
+    fn send(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
+        let s = try!(self.sock.send_to(buffer, &self.server).or_else(|e| {
+            println!("Error writing to Graylog: {}", e);
+            Err(e)
+        }));
+        Ok(s)
+    }
 }
 
 impl<A: ToSocketAddrs> Log for GraylogLogger<A>
     where A: std::marker::Send + std::marker::Sync
 {
-	fn enabled(&self, metadata: &LogMetadata) -> bool {
-		metadata.level() <= self.level
-	}
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= self.level
+    }
 
-	fn log(&self, record: &LogRecord) {
-		if self.enabled(record.metadata()) {
-			if self.send_as_gelf(record).is_err() {
-				println!("{} {} - {}", UTC::now(), record.level(), record.args());
-			};
-		}
-	}
+    fn log(&self, record: &LogRecord) {
+        if self.enabled(record.metadata()) {
+            if self.send_as_gelf(record).is_err() {
+                println!("{} {} - {}", UTC::now(), record.level(), record.args());
+            };
+        }
+    }
 }
-
