@@ -3,8 +3,9 @@
 //!
 //! # Examples
 //!
-//! ```
-//! #[macro_use] extern crate log;
+//! ```rust
+//! #[macro_use]
+//! extern crate log;
 //! extern crate graylog;
 //!
 //! fn main() {
