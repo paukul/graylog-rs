@@ -1,17 +1,16 @@
 use std;
 use std::io::prelude::*;
 use std::net::{UdpSocket, ToSocketAddrs};
-use std::fmt;
 use std::mem;
-use std::error::Error;
 
-use log;
 use log::{Log, LogRecord, LogLevel, LogMetadata};
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use chrono::{DateTime, UTC};
 use serde_json;
 use byteorder::{BigEndian, WriteBytesExt};
+
+use GraylogError;
 
 const MAX_PACKET_SIZE: usize = 8192;
 const MAGIC_BYTES: u16 = 0x1E0F;
@@ -102,59 +101,6 @@ impl<'a> Iterator for GelfChunks<'a> {
                 data: data,
             }
         })
-    }
-}
-
-#[derive(Debug)]
-pub enum GraylogError {
-    SetLoggerError(log::SetLoggerError),
-    Io(std::io::Error),
-    JsonError(serde_json::Error),
-}
-
-impl fmt::Display for GraylogError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            GraylogError::SetLoggerError(ref err) => err.fmt(f),
-            GraylogError::Io(ref err) => err.fmt(f),
-            GraylogError::JsonError(ref err) => err.fmt(f),
-        }
-    }
-}
-
-impl Error for GraylogError {
-    fn description(&self) -> &str {
-        match *self {
-            GraylogError::SetLoggerError(ref err) => err.description(),
-            GraylogError::Io(ref err) => err.description(),
-            GraylogError::JsonError(ref err) => err.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&Error> {
-        match *self {
-            GraylogError::SetLoggerError(ref err) => Some(err),
-            GraylogError::Io(ref err) => Some(err),
-            GraylogError::JsonError(ref err) => Some(err),
-        }
-    }
-}
-
-impl From<log::SetLoggerError> for GraylogError {
-    fn from(err: log::SetLoggerError) -> GraylogError {
-        GraylogError::SetLoggerError(err)
-    }
-}
-
-impl From<std::io::Error> for GraylogError {
-    fn from(err: std::io::Error) -> GraylogError {
-        GraylogError::Io(err)
-    }
-}
-
-impl From<serde_json::Error> for GraylogError {
-    fn from(err: serde_json::Error) -> GraylogError {
-        GraylogError::JsonError(err)
     }
 }
 
