@@ -59,6 +59,7 @@ impl<'a> Chunk<'a> {
     }
 }
 
+#[derive(Debug)]
 struct ChunkHeader {
     magic_bytes: u16,
     message_id: u64,
@@ -93,6 +94,7 @@ impl<'a> Iterator for GelfChunks<'a> {
                 seq_number: self.count as u8,
                 seq_count: self.total as u8,
             };
+            println!("{:?}", header);
 
             self.count += 1;
 
