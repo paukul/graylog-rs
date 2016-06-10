@@ -74,7 +74,7 @@ impl<'a> GelfChunks<'a> {
 
         GelfChunks {
             count: 0,
-            total: data.len() / chunk_size,
+            total: chunks.len(),
             chunks: chunks,
             data: data,
             message_id: message_id,
