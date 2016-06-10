@@ -13,7 +13,7 @@ extern crate log;
 extern crate graylog;
 
 fn main() {
-  graylog::logger::init();
+  graylog::logger::init("192.168.99.100:5555", log::LogLevel::Debug);
   info!("The logger macros now use the graylog logging backend");
 }
 ```
