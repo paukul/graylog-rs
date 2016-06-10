@@ -144,7 +144,6 @@ impl Gelf {
 
 impl<A: ToSocketAddrs> GraylogLogger<A> {
     fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
-        let mut e = GzEncoder::new(Vec::new(), Compression::Default);
         let utc: DateTime<UTC> = UTC::now();
 
         let gelf = Gelf {
@@ -157,7 +156,8 @@ impl<A: ToSocketAddrs> GraylogLogger<A> {
         };
 
         let json = try!(serde_json::to_string(&gelf));
-        try!(e.write(json.as_bytes()));
+        let mut e = GzEncoder::new(Vec::new(), Compression::Default);
+        try!(e.write_all(json.as_bytes()));
 
         let compressed_bytes = try!(e.finish());
         if compressed_bytes.len() > MAX_PACKET_SIZE {
