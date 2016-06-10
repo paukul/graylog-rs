@@ -1,7 +1,6 @@
 use std;
 use std::io::prelude::*;
 use std::net::{UdpSocket, ToSocketAddrs};
-use std::mem;
 use std::hash::{Hash, Hasher, SipHasher};
 
 use log::{Log, LogRecord, LogLevel, LogMetadata};
@@ -15,6 +14,7 @@ use GraylogError;
 
 const MAX_PACKET_SIZE: usize = 8192;
 const MAGIC_BYTES: u16 = 0x1E0F;
+const HEADER_SIZE: usize = 12; // TODO: figure out how to do this with mem::size_of<ChunkHeader>()
 
 struct GraylogLogger<A: ToSocketAddrs> {
     server: A,
@@ -69,7 +69,7 @@ struct ChunkHeader {
 
 impl<'a> GelfChunks<'a> {
     fn new(data: &'a [u8], message_id: u64) -> GelfChunks<'a> {
-        let chunk_size = MAX_PACKET_SIZE - mem::size_of::<ChunkHeader>();
+        let chunk_size = MAX_PACKET_SIZE - HEADER_SIZE;
         let mut chunks = data.chunks(chunk_size).collect::<Vec<&[u8]>>();
         chunks.reverse();
 
@@ -169,7 +169,7 @@ impl<A: ToSocketAddrs> GraylogLogger<A> {
 
     fn send_chunked_gelf(&self, buffer: &[u8], message_id: u64) -> Result<usize, GraylogError> {
         let chunks = GelfChunks::new(buffer, message_id);
-        println!("{:x}", message_id);
+        println!("Graylog message_id: {:x}", message_id);
         for chunk in chunks {
             let data = try!(chunk.to_binary());
             try!(self.send(&data));
