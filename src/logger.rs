@@ -2,6 +2,7 @@ use std;
 use std::io::prelude::*;
 use std::net::{UdpSocket, ToSocketAddrs};
 use std::mem;
+use std::hash::{Hash, Hasher, SipHasher};
 
 use log::{Log, LogRecord, LogLevel, LogMetadata};
 use flate2::Compression;
@@ -66,11 +67,10 @@ struct ChunkHeader {
 }
 
 impl<'a> GelfChunks<'a> {
-    fn new(data: &'a [u8]) -> GelfChunks<'a> {
+    fn new(data: &'a [u8], message_id: u64) -> GelfChunks<'a> {
         let chunk_size = MAX_PACKET_SIZE - mem::size_of::<ChunkHeader>();
         let mut chunks = data.chunks(chunk_size).collect::<Vec<&[u8]>>();
         chunks.reverse();
-        let message_id = 0x0fa15f94832ecb92; // TODO generate a real one
 
         GelfChunks {
             count: 0,
@@ -86,8 +86,6 @@ impl<'a> Iterator for GelfChunks<'a> {
     type Item = Chunk<'a>;
 
     fn next(&mut self) -> Option<Chunk<'a>> {
-        self.count += 1;
-
         self.chunks.pop().map(|data| {
             let header = ChunkHeader {
                 magic_bytes: MAGIC_BYTES,
@@ -95,6 +93,8 @@ impl<'a> Iterator for GelfChunks<'a> {
                 seq_number: self.count as u8,
                 seq_count: self.total as u8,
             };
+
+            self.count += 1;
 
             Chunk {
                 header: header,
@@ -129,6 +129,17 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), 
     Ok(())
 }
 
+impl Gelf {
+    fn message_id(&self) -> u64 {
+        use chrono::Timelike;
+        let mut s = SipHasher::new();
+        self.host.hash(&mut s);
+        self.timestamp.hash(&mut s);
+        UTC::now().nanosecond().hash(&mut s);
+        s.finish()
+    }
+}
+
 impl<A: ToSocketAddrs> GraylogLogger<A> {
     fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
         let mut e = GzEncoder::new(Vec::new(), Compression::Default);
@@ -144,19 +155,19 @@ impl<A: ToSocketAddrs> GraylogLogger<A> {
         };
 
         let json = try!(serde_json::to_string(&gelf));
-        // println!("gelf json:\n {}", json);
         try!(e.write(json.as_bytes()));
 
         let compressed_bytes = try!(e.finish());
         if compressed_bytes.len() > MAX_PACKET_SIZE {
-            self.send_chunked_gelf(&compressed_bytes)
+            self.send_chunked_gelf(&compressed_bytes, gelf.message_id())
         } else {
             self.send(&compressed_bytes)
         }
     }
 
-    fn send_chunked_gelf(&self, buffer: &[u8]) -> Result<usize, GraylogError> {
-        let chunks = GelfChunks::new(buffer);
+    fn send_chunked_gelf(&self, buffer: &[u8], message_id: u64) -> Result<usize, GraylogError> {
+        let chunks = GelfChunks::new(buffer, message_id);
+        println!("{:x}", message_id);
         for chunk in chunks {
             let data = try!(chunk.to_binary());
             try!(self.send(&data));
