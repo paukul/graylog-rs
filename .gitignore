@@ -1,2 +1,4 @@
 target
 Cargo.lock
+graylog/config/node-id
+graylog/data/
