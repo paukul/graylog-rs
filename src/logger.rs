@@ -54,7 +54,7 @@ impl<'a> Chunk<'a> {
         try!(wrt.write_u64::<BigEndian>(self.header.message_id));
         try!(wrt.write_u8(self.header.seq_number));
         try!(wrt.write_u8(self.header.seq_count));
-        wrt.extend(self.data.iter().cloned());
+         wrt.extend(self.data.iter());
         Ok(wrt)
     }
 }
