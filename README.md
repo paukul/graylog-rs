@@ -1,5 +1,7 @@
 # graylog-rs
 
+[![Build Status](https://travis-ci.org/paukul/graylog-rs.svg?branch=master)](https://travis-ci.org/paukul/graylog-rs)
+
 ## WIP status
 
 This is an early WIP. It sends gziped Gelf via UDP and does support chunking for large messages.
@@ -32,3 +34,7 @@ On OSX one has to enable NFS for the docker-machine via [docker-machine-nfs](htt
 the custom log4j config (required to see debug logs). This should no longer be necessary as soon as docker for OSX is released.
 
 The `GRAYLOG_REST_TRANSPORT_URI` in the docker-compose image probably also has to be modified based on the IP of your docker-machine ip.
+
+# License
+
+Released under the [MIT License](http://choosealicense.com/licenses/mit/)
