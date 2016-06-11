@@ -1,13 +1,12 @@
 use std;
+use serde_json;
 use std::io::prelude::*;
-use std::net::{UdpSocket, ToSocketAddrs};
+use std::net::{ToSocketAddrs, UdpSocket};
 use std::hash::{Hash, Hasher, SipHasher};
-
-use log::{Log, LogRecord, LogLevel, LogMetadata};
+use log::{Log, LogLevel, LogMetadata, LogRecord};
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use chrono::{DateTime, UTC};
-use serde_json;
 use byteorder::{BigEndian, WriteBytesExt};
 
 use GraylogError;
@@ -54,7 +53,7 @@ impl<'a> Chunk<'a> {
         try!(wrt.write_u64::<BigEndian>(self.header.message_id));
         try!(wrt.write_u8(self.header.seq_number));
         try!(wrt.write_u8(self.header.seq_count));
-         wrt.extend(self.data.iter());
+        wrt.extend(self.data.iter());
         Ok(wrt)
     }
 }

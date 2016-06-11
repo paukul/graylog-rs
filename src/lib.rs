@@ -26,10 +26,10 @@ extern crate flate2;
 extern crate chrono;
 extern crate byteorder;
 
-pub mod logger;
-
 use std::fmt;
 use std::error::Error;
+
+pub mod logger;
 
 #[derive(Debug)]
 pub enum GraylogError {
