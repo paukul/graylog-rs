@@ -128,7 +128,7 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), 
             level: level,
             server: addr,
             sock: sock,
-            hostname: hostname,
+            hostname: hostname.trim().to_string(),
         })
     }));
     Ok(())
