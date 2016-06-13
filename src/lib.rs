@@ -19,6 +19,7 @@
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
 // #![warn(missing_docs)]
+extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate log;

@@ -22,7 +22,7 @@ struct GraylogLogger<A: ToSocketAddrs> {
     hostname: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct Gelf {
     version: String,
     host: String,
@@ -30,6 +30,10 @@ struct Gelf {
     full_message: Option<String>,
     timestamp: Option<i64>,
     level: Option<u8>,
+    #[serde(rename="_file")]
+    file: String,
+    #[serde(rename="_line")]
+    line: u32,
 }
 
 struct GelfChunks<'a> {
@@ -145,6 +149,7 @@ impl<A: ToSocketAddrs> GraylogLogger<A> {
     fn send_as_gelf(&self, record: &LogRecord) -> Result<usize, GraylogError> {
         let utc: DateTime<UTC> = UTC::now();
 
+        let location = record.location();
         let gelf = Gelf {
             version: "1.1".to_string(),
             short_message: format!("{}", record.args()),
@@ -152,6 +157,8 @@ impl<A: ToSocketAddrs> GraylogLogger<A> {
             timestamp: Some(utc.timestamp()),
             level: None,
             host: self.hostname.clone(),
+            file: location.file().to_string(),
+            line: location.line(),
         };
 
         let json = try!(serde_json::to_string(&gelf));
@@ -199,4 +206,45 @@ impl<A: ToSocketAddrs> Log for GraylogLogger<A>
             };
         }
     }
+}
+
+#[test]
+fn test_gelf_serialization() {
+    use serde_json::Value;
+    let file = "asdfasdfadsf.rs".to_string();
+    let line = 123;
+    let gelf = Gelf {
+        version: "1.1".to_string(),
+        host: "somehost".to_string(),
+        short_message: "some short message".to_string(),
+        full_message: Some("Full message".to_string()),
+        timestamp: Some(UTC::now().timestamp()),
+        level: None,
+        file: file.clone(),
+        line: line,
+    };
+    let json = serde_json::to_string(&gelf).unwrap();
+    println!("Json\n{}", json);
+
+    let data: Value = serde_json::from_str(&json).unwrap();
+    let obj = data.as_object().unwrap();
+    assert_eq!(obj.get("_file").unwrap().as_string().unwrap(), file);
+    assert_eq!(obj.get("_line").unwrap().as_u64().unwrap(), line as u64);
+
+    let deserialized_gelf: Gelf = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized_gelf, gelf);
+    println!("{:?}", obj);
+}
+
+#[cfg(test)]
+mod tests {
+    use log;
+
+    use super::*;
+
+    #[test]
+    fn test_it_works() {
+        assert!(init("192.168.1.1", log::LogLevel::Debug).is_ok());
+    }
+
 }
