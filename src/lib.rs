@@ -15,10 +15,13 @@
 //! ```
 
 
-// Needed to derive `Serialize` on ServiceProperties
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-// #![warn(missing_docs)]
+#![feature(plugin)]
+#![plugin(clippy)]
+#![feature(proc_macro)]
+
+#[macro_use]
+extern crate serde_derive;
+
 extern crate serde;
 extern crate serde_json;
 #[macro_use]

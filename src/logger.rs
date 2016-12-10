@@ -2,7 +2,8 @@ use std;
 use serde_json;
 use std::io::prelude::*;
 use std::net::{ToSocketAddrs, UdpSocket};
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 use log::{Log, LogLevel, LogMetadata, LogRecord};
 use flate2::Compression;
 use flate2::write::GzEncoder;
@@ -57,7 +58,7 @@ impl<'a> Chunk<'a> {
         try!(wrt.write_u64::<BigEndian>(self.header.message_id));
         try!(wrt.write_u8(self.header.seq_number));
         try!(wrt.write_u8(self.header.seq_count));
-        wrt.extend(self.data.iter());
+        wrt.extend_from_slice(self.data);
         Ok(wrt)
     }
 }
@@ -137,7 +138,7 @@ pub fn init<A: ToSocketAddrs + 'static>(addr: A, level: LogLevel) -> Result<(), 
 impl Gelf {
     fn message_id(&self) -> u64 {
         use chrono::Timelike;
-        let mut s = SipHasher::new();
+        let mut s = DefaultHasher::new();
         self.host.hash(&mut s);
         self.timestamp.hash(&mut s);
         UTC::now().nanosecond().hash(&mut s);
@@ -200,10 +201,8 @@ impl<A: ToSocketAddrs> Log for GraylogLogger<A>
     }
 
     fn log(&self, record: &LogRecord) {
-        if self.enabled(record.metadata()) {
-            if self.send_as_gelf(record).is_err() {
-                println!("{} {} - {}", UTC::now(), record.level(), record.args());
-            };
+        if self.enabled(record.metadata()) && self.send_as_gelf(record).is_err() {
+            println!("{} {} - {}", UTC::now(), record.level(), record.args());
         }
     }
 }
@@ -228,7 +227,7 @@ fn test_gelf_serialization() {
 
     let data: Value = serde_json::from_str(&json).unwrap();
     let obj = data.as_object().unwrap();
-    assert_eq!(obj.get("_file").unwrap().as_string().unwrap(), file);
+    assert_eq!(obj.get("_file").unwrap().as_str().unwrap(), file);
     assert_eq!(obj.get("_line").unwrap().as_u64().unwrap(), line as u64);
 
     let deserialized_gelf: Gelf = serde_json::from_str(&json).unwrap();
